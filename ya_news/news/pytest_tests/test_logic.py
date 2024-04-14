@@ -120,4 +120,3 @@ def test_user_cant_edit_comment_of_another_user(
     assert comment.text != comment_form_data['text']
     assert comment.author == comment.author
     assert comment.created == comment.created
- 
