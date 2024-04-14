@@ -1,11 +1,17 @@
-import pytest
 from datetime import datetime, timedelta
 
 from django.conf import settings
 from django.test.client import Client
 from django.urls import reverse
+import pytest
 
-from news.models import News, Comment
+from news.models import Comment, News
+
+
+@pytest.fixture
+def parametrized_client(author_client, anonymous_client):
+    return {'author_client': author_client,
+            'anonymous_client': anonymous_client}
 
 
 @pytest.fixture

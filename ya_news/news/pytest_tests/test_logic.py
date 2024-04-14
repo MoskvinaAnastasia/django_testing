@@ -1,9 +1,6 @@
 from http import HTTPStatus
-# Импортируем из файла с формами список стоп-слов и предупреждение формы.
 from news.forms import BAD_WORDS, WARNING
-# Импортируем класс модели комментария.
 from news.models import Comment
-# Импортируем функцию проверки редиректа и ошибки валидации формы.
 from pytest_django.asserts import assertRedirects, assertFormError
 
 
@@ -13,13 +10,10 @@ def test_anonymous_user_cant_create_comment(
         detail_url,
 ):
     """Проверяем, что анонимный пользователь не может создать комментарий."""
-    # Совершаем запрос от анонимного клиента, в POST-запросе отправляем
-    # предварительно подготовленные данные формы с текстом комментария.
+    initial_comments_count = Comment.objects.count()
     anonymous_client.post(detail_url, data=comment_form_data)
-    # Считаем количество комментариев.
-    comments_count = Comment.objects.count()
-    # Ожидаем, что комментариев в базе нет - сравниваем с нулём.
-    assert comments_count == 0
+    final_comments_count = Comment.objects.count()
+    assert final_comments_count == initial_comments_count
 
 
 def test_user_can_create_comment(
@@ -30,20 +24,15 @@ def test_user_can_create_comment(
         news,
 ):
     """Проверяем, что пользователь может создать комментарий."""
-    # Совершаем запрос через авторизованный клиент.
+    initial_comments_count = Comment.objects.count()
     response = author_client.post(detail_url, data=comment_form_data)
-    # Проверяем, что редирект привёл к разделу с комментами.
     assertRedirects(response, f'{detail_url}#comments')
-    # Считаем количество комментариев.
-    comments_count = Comment.objects.count()
-    # Убеждаемся, что есть один комментарий.
-    assert comments_count == 1
-    # Получаем объект комментария из базы.
-    comment = Comment.objects.get()
-    # Проверяем, что все атрибуты комментария совпадают с ожидаемыми.
-    assert comment.text == comment_form_data['text']
-    assert comment.news, news
-    assert comment.author, author
+    final_comments_count = Comment.objects.count()
+    assert final_comments_count == initial_comments_count + 1
+    created_comment = Comment.objects.last()
+    assert created_comment.text == comment_form_data['text']
+    assert created_comment.news == news
+    assert created_comment.author == author
 
 
 def test_user_cant_use_bad_words(
@@ -53,21 +42,17 @@ def test_user_cant_use_bad_words(
     """Проверяем, что пользователь не может использовать
     запрещенные слова в комментариях.
     """
-    # Формируем данные для отправки формы; текст включает
-    # первое слово из списка стоп-слов.
+    initial_comments_count = Comment.objects.count()
     bad_words_data = {'text': f'Текст, {BAD_WORDS[0]}, еще немного текста'}
-    # Отправляем запрос через авторизованный клиент.
     response = author_client.post(detail_url, data=bad_words_data)
-    # Проверяем, есть ли в ответе ошибка формы.
     assertFormError(
         response,
         form='form',
         field='text',
         errors=WARNING
     )
-    # Дополнительно убедимся, что комментарий не был создан.
-    comments_count = Comment.objects.count()
-    assert comments_count == 0
+    final_comments_count = Comment.objects.count()
+    assert final_comments_count == initial_comments_count
 
 
 def test_author_can_delete_comment(
@@ -77,15 +62,13 @@ def test_author_can_delete_comment(
         comments_url,
 ):
     """Проверяем, что автор комментария может удалить свой комментарий."""
-    # От имени автора комментария отправляем DELETE-запрос на удаление.
+    initial_comments_count = Comment.objects.count()
     response = author_client.delete(comment_delete_url)
-    # Проверяем, что редирект привёл к разделу с комментариями.
-    # Заодно проверим статус-коды ответов.
     assertRedirects(response, comments_url)
-    # Считаем количество комментариев в системе.
-    comments_count = Comment.objects.count()
-    # Ожидаем ноль комментариев в системе.
-    assert comments_count == 0
+    assert response.status_code == HTTPStatus.FOUND
+    final_comments_count = Comment.objects.count()
+    assert final_comments_count == initial_comments_count - 1
+    assert not Comment.objects.filter(pk=comment.pk).exists()
 
 
 def test_user_cant_delete_comment_of_another_user(
@@ -96,13 +79,12 @@ def test_user_cant_delete_comment_of_another_user(
     """Проверяем, что пользователь не может удалить
     комментарий другого пользователя.
     """
-    # Выполняем запрос на удаление от пользователя-читателя.
+    initial_comments_count = Comment.objects.count()
     response = not_author_client.delete(comment_delete_url)
-    # Проверяем, что вернулась 404 ошибка.
     assert response.status_code == HTTPStatus.NOT_FOUND
-    # Убедимся, что комментарий по-прежнему на месте.
-    comments_count = Comment.objects.count()
-    assert comments_count == 1
+    final_comments_count = Comment.objects.count()
+    assert final_comments_count == initial_comments_count
+    assert Comment.objects.filter(pk=comment.id).exists()
 
 
 def test_author_can_edit_comment(
@@ -115,14 +97,12 @@ def test_author_can_edit_comment(
     """Проверяем, что автор комментария может
     отредактировать свой комментарий.
     """
-    # Выполняем запрос на редактирование от имени автора комментария.
     response = author_client.post(comment_edit_url, data=comment_form_data)
-    # Проверяем, что сработал редирект.
     assertRedirects(response, comments_url)
-    # Обновляем объект комментария.
     comment.refresh_from_db()
-    # Проверяем, что текст комментария соответствует обновленному.
     assert comment.text == comment_form_data['text']
+    assert comment.author == comment.author
+    assert comment.news == comment.news
 
 
 def test_user_cant_edit_comment_of_another_user(
@@ -134,11 +114,10 @@ def test_user_cant_edit_comment_of_another_user(
     """Проверяем, что пользователь не может редактировать
     комментарий другого пользователя.
     """
-    # Выполняем запрос на редактирование от имени другого пользователя.
     response = not_author_client.post(comment_edit_url, data=comment_form_data)
-    # Проверяем, что вернулась 404 ошибка.
     assert response.status_code == HTTPStatus.NOT_FOUND
-    # Обновляем объект комментария.
     comment.refresh_from_db()
-    # Проверяем, что текст остался тем же, что и был.
     assert comment.text != comment_form_data['text']
+    assert comment.author == comment.author
+    assert comment.created == comment.created
+ 
