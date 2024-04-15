@@ -31,7 +31,7 @@ class TestRoutes(TestCase):
             ('users:login', None, HTTPStatus.OK),  # Страница входа
             ('users:logout', None, HTTPStatus.OK),  # Страница выхода
             ('users:signup', None, HTTPStatus.OK),  # Страница регистрации
-            ('notes:list', None, HTTPStatus.OK),  # Список заметок
+            ('notes:list', None, HTTPStatus.FOUND),  # Список заметок
             ('notes:add', None, HTTPStatus.FOUND),  # Добавление заметки
             ('notes:success', None, HTTPStatus.FOUND),  # Успешн добавлен замет
         ]
