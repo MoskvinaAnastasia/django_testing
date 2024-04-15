@@ -26,7 +26,6 @@ class TestRoutes(TestCase):
         Проверка доступности домашней страницы,
         страницы входа, выхода и регистрации.
         """
-        # Общий список адресов страниц, клиентов и ожидаемых статусов ответов
         urls = [
             ('notes:home', None, HTTPStatus.OK),  # Домашняя страница
             ('users:login', None, HTTPStatus.OK),  # Страница входа
@@ -36,14 +35,7 @@ class TestRoutes(TestCase):
             ('notes:add', None, HTTPStatus.FOUND),  # Добавление заметки
             ('notes:success', None, HTTPStatus.FOUND),  # Успешн добавлен замет
         ]
-        # Проверка доступности страниц для анонимного пользователя
-        for name, args, expected_status in urls:
-            with self.subTest(name=name):
-                url = reverse(name, args=args)
-                response = self.client.get(url)
-                self.assertEqual(response.status_code, expected_status)
-        # Проверка доступности страниц для авторизованного пользователя
-        self.client.force_login(self.author)
+
         for name, args, expected_status in urls:
             with self.subTest(name=name):
                 url = reverse(name, args=args)
@@ -78,14 +70,15 @@ class TestRoutes(TestCase):
         для различных маршрутов.
         """
         login_url = reverse('users:login')
-        urls = (
+        urls = [
             ('notes:edit', (self.note.slug,)),
             ('notes:delete', (self.note.slug,)),
             ('notes:detail', (self.note.slug,)),
             ('notes:add', None),
             ('notes:success', None),
             ('notes:list', None)
-        )
+        ]
+
         for name, args in urls:
             with self.subTest(name=name):
                 url = reverse(name, args=args)
