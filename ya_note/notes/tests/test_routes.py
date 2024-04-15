@@ -19,36 +19,36 @@ class TestRoutes(TestCase):
         cls.note = Note.objects.create(
             title='Заголовок', text='Текст', author=cls.author
         )
-        cls.reader = User.objects.create(username='Читатель')
+        cls.reader = User.objects.create(username='Марти')
 
     def test_pages_availability(self):
         """
         Проверка доступности домашней страницы,
         страницы входа, выхода и регистрации.
         """
-        urls = (
-            ('notes:home', None),
-            ('users:login', None),
-            ('users:logout', None),
-            ('users:signup', None),
-        )
-        for name, args in urls:
+        # Общий список адресов страниц, клиентов и ожидаемых статусов ответов
+        urls = [
+            ('notes:home', None, HTTPStatus.OK),  # Домашняя страница
+            ('users:login', None, HTTPStatus.OK),  # Страница входа
+            ('users:logout', None, HTTPStatus.OK),  # Страница выхода
+            ('users:signup', None, HTTPStatus.OK),  # Страница регистрации
+            ('notes:list', None, HTTPStatus.OK),  # Список заметок
+            ('notes:add', None, HTTPStatus.FOUND),  # Добавление заметки
+            ('notes:success', None, HTTPStatus.FOUND),  # Успешн добавлен замет
+        ]
+        # Проверка доступности страниц для анонимного пользователя
+        for name, args, expected_status in urls:
             with self.subTest(name=name):
                 url = reverse(name, args=args)
                 response = self.client.get(url)
-                self.assertEqual(response.status_code, HTTPStatus.OK)
-
+                self.assertEqual(response.status_code, expected_status)
+        # Проверка доступности страниц для авторизованного пользователя
         self.client.force_login(self.author)
-        auth_urls = (
-            ('notes:list', None),
-            ('notes:add', None),
-            ('notes:success', None),
-        )
-        for name, args in auth_urls:
+        for name, args, expected_status in urls:
             with self.subTest(name=name):
                 url = reverse(name, args=args)
                 response = self.client.get(url)
-                self.assertEqual(response.status_code, HTTPStatus.OK)
+                self.assertEqual(response.status_code, expected_status)
 
     def test_availability_for_note_edit_detail_delete(self):
         """

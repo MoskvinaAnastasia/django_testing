@@ -8,37 +8,46 @@ from notes.models import Note
 User = get_user_model()
 
 
-class TestNoteContent(TestCase):
-    """Набор тестов для проверки контента создания заметок."""
+class TestNoteContentAndForms(TestCase):
+    """Набор тестов для проверки контента создания заметок
+    и форм создания и редактирования заметок.
+    """
 
     @classmethod
     def setUpTestData(cls):
         """Подготовка данных для тестов."""
         cls.reader = User.objects.create(username='reader')
-        cls.auth_client = Client()
-        cls.auth_client.force_login(cls.reader)
         cls.author = User.objects.create(username='author')
-        cls.auth_client = Client()
-        cls.auth_client.force_login(cls.author)
-        cls.note_author = Note.objects.create(
+        cls.user = User.objects.create(username='Spider-man')
+
+    def setUp(self):
+        """Настройка для каждого теста."""
+        self.auth_client_reader = Client()
+        self.auth_client_reader.force_login(self.reader)
+
+        self.auth_client_author = Client()
+        self.auth_client_author.force_login(self.author)
+
+        self.user_client = Client()
+        self.user_client.force_login(self.user)
+
+        self.note_author = Note.objects.create(
             title='Заголовок',
             text='Текст',
-            author=cls.author)
-        cls.note_reader = Note.objects.create(
+            author=self.author)
+        self.note_reader = Note.objects.create(
             title='Заголовок Читателя',
             text='Текст Читателя',
-            author=cls.reader
+            author=self.reader
         )
-        cls.url = reverse('notes:list')
+        self.url = reverse('notes:list')
 
     def test_note_is_not_in_object_list_for_another_user(self):
         """
         Проверка, что в список заметок одного пользователя не
         попадают заметки другого пользователя.
         """
-        user = self.reader
-        self.client.force_login(user)
-        response = self.client.get(self.url)
+        response = self.auth_client_reader.get(self.url)
         object_list = response.context['object_list']
         self.assertNotIn(self.note_author, object_list)
 
@@ -48,40 +57,28 @@ class TestNoteContent(TestCase):
         на страницу со списком заметок
         в списке object_list в словаре context.
         """
-        user = self.reader
-        self.client.force_login(user)
-        response = self.client.get(self.url)
+        response = self.auth_client_reader.get(self.url)
         object_list = response.context['object_list']
         self.assertIn(self.note_reader, object_list)
 
-
-class TestNoteForms(TestCase):
-    """Набор тестов для проверки форм создания и редактирования заметок."""
-
-    @classmethod
-    def setUpTestData(cls):
-        """Подготовка данных для тестов."""
-        cls.user = User.objects.create(username='Spider-man')
-        cls.user_client = Client()
-        cls.user_client.force_login(cls.user)
-
-    def test_note_create_form_is_passed_to_create_page(self):
+    def test_note_forms_are_passed_to_pages(self):
         """
-        Проверка, что форма создания заметки
-        передается на страницу создания.
+        Проверка, что форма создания заметки передается
+        на страницу создания, и что форма редактирования заметки
+        передается на страницу редактирования.
         """
+        # Проверка формы создания заметки
         response = self.user_client.get(reverse('notes:add'))
         self.assertIsInstance(response.context['form'], NoteForm)
 
-    def test_note_update_form_is_passed_to_update_page(self):
-        """
-        Проверка, что форма редактирования заметки
-        передается на страницу редактирования.
-        """
+        # Создаем заметку для тестирования формы редактирования
         note = Note.objects.create(
             title='Fighting Otto Octaviuse',
             text='More tentacles',
-            author=self.user)
+            author=self.user
+        )
+
+        # Проверка формы редактирования заметки
         response = self.user_client.get(
             reverse('notes:edit', args=[note.slug]))
         self.assertIsInstance(response.context['form'], NoteForm)
