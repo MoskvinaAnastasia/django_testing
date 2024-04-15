@@ -1,8 +1,11 @@
-from django.contrib.auth import get_user_model
-from django.conf import settings
-from django.urls import reverse
-from news.forms import CommentForm
 import pytest
+
+from django.contrib.auth import get_user_model
+from django.urls import reverse
+from django.conf import settings
+
+from news.forms import CommentForm
+
 
 # Получаем модель пользователя.
 User = get_user_model()

@@ -55,7 +55,7 @@ def anonymous_client():
 
 @pytest.fixture
 # Создаём объект новости.
-def news(author):
+def news():
     news = News.objects.create(
         title='Заголовок новости',
         text='ТекстВ',

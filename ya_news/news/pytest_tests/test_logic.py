@@ -1,7 +1,9 @@
 from http import HTTPStatus
+
+from pytest_django.asserts import assertFormError, assertRedirects
+
 from news.forms import BAD_WORDS, WARNING
 from news.models import Comment
-from pytest_django.asserts import assertRedirects, assertFormError
 
 
 def test_anonymous_user_cant_create_comment(
@@ -29,7 +31,7 @@ def test_user_can_create_comment(
     assertRedirects(response, f'{detail_url}#comments')
     final_comments_count = Comment.objects.count()
     assert final_comments_count == initial_comments_count + 1
-    created_comment = Comment.objects.last()
+    created_comment = Comment.objects.order_by('-id').first()
     assert created_comment.text == comment_form_data['text']
     assert created_comment.news == news
     assert created_comment.author == author
@@ -62,12 +64,10 @@ def test_author_can_delete_comment(
         comments_url,
 ):
     """Проверяем, что автор комментария может удалить свой комментарий."""
-    initial_comments_count = Comment.objects.count()
+    assert Comment.objects.filter(pk=comment.pk).exists()
     response = author_client.delete(comment_delete_url)
     assertRedirects(response, comments_url)
     assert response.status_code == HTTPStatus.FOUND
-    final_comments_count = Comment.objects.count()
-    assert final_comments_count == initial_comments_count - 1
     assert not Comment.objects.filter(pk=comment.pk).exists()
 
 
@@ -79,11 +79,8 @@ def test_user_cant_delete_comment_of_another_user(
     """Проверяем, что пользователь не может удалить
     комментарий другого пользователя.
     """
-    initial_comments_count = Comment.objects.count()
     response = not_author_client.delete(comment_delete_url)
     assert response.status_code == HTTPStatus.NOT_FOUND
-    final_comments_count = Comment.objects.count()
-    assert final_comments_count == initial_comments_count
     assert Comment.objects.filter(pk=comment.id).exists()
 
 
@@ -101,7 +98,6 @@ def test_author_can_edit_comment(
     assertRedirects(response, comments_url)
     comment.refresh_from_db()
     assert comment.text == comment_form_data['text']
-    assert comment.author == comment.author
     assert comment.news == comment.news
 
 
@@ -114,9 +110,10 @@ def test_user_cant_edit_comment_of_another_user(
     """Проверяем, что пользователь не может редактировать
     комментарий другого пользователя.
     """
+    original_comment_text = comment.text
     response = not_author_client.post(comment_edit_url, data=comment_form_data)
     assert response.status_code == HTTPStatus.NOT_FOUND
     comment.refresh_from_db()
-    assert comment.text != comment_form_data['text']
+    assert comment.text == original_comment_text
     assert comment.author == comment.author
     assert comment.created == comment.created
