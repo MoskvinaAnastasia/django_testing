@@ -104,7 +104,7 @@ def list_news():
             # где index - счётчик цикла.
             date=today - timedelta(days=index)
         )
-        for index in range(settings.NEWS_COUNT_ON_HOME_PAGE + 1)
+        for index in range(settings.NEWS_COUNT_ON_HOME_PAGE)
     ]
     News.objects.bulk_create(all_news)
 

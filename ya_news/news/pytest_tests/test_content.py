@@ -21,7 +21,7 @@ def test_logged_in_user_has_comment_form(author_client, detail_url):
     assert isinstance(response.context['form'], CommentForm)
 
 
-# Тест для анонимного пользователя
+@pytest.mark.django_db
 def test_anonymous_user_has_no_comment_form(client, detail_url):
     response = client.get(detail_url)
     assert 'form' not in response.context
@@ -36,7 +36,7 @@ def test_news_count(client, list_news):
 
 
 @pytest.mark.django_db
-def test_news_order(client, list_news):
+def test_news_order(client,):
     response = client.get(HOME_URL)
     object_list = response.context['object_list']
     all_dates = [news.date for news in object_list]
@@ -44,10 +44,9 @@ def test_news_order(client, list_news):
     assert all_dates == sorted_dates
 
 
-def test_comments_order(
-        client, news, list_comment, detail_url
-):
-    response = client.get(detail_url)
+@pytest.mark.django_db
+def test_comments_order(author_client, news, detail_url):
+    response = author_client.get(detail_url)
     assert 'news' in response.context
     news = response.context['news']
     all_comments = news.comment_set.all()
