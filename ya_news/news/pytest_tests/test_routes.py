@@ -1,42 +1,53 @@
-import pytest
-from django.urls import reverse
 from http import HTTPStatus
+
+import pytest
+
+from django.urls import reverse
 
 
 @pytest.mark.django_db
 @pytest.mark.parametrize(
-    'name, args, expected_status',
+    'user_client, url, status',
     (
-        ('news:home', None, HTTPStatus.OK),
-        ('news:detail',
-            pytest.lazy_fixture('news_id_for_args'), HTTPStatus.OK),
-        ('users:login', None, HTTPStatus.OK),
-        ('users:logout', None, HTTPStatus.OK),
-        ('users:signup', None, HTTPStatus.OK),
-        ('news:edit',
-            pytest.lazy_fixture('comment_id_for_args'), HTTPStatus.NOT_FOUND),
-        ('news:delete',
-            pytest.lazy_fixture('comment_id_for_args'), HTTPStatus.NOT_FOUND),
+        (pytest.lazy_fixture('anonymous_client'),
+         reverse('news:home'), HTTPStatus.OK),
+        (pytest.lazy_fixture('anonymous_client'),
+         pytest.lazy_fixture('detail_url'), HTTPStatus.OK),
+        (pytest.lazy_fixture('anonymous_client'),
+         reverse('users:login'), HTTPStatus.OK),
+        (pytest.lazy_fixture('anonymous_client'),
+         reverse('users:logout'), HTTPStatus.OK),
+        (pytest.lazy_fixture('anonymous_client'),
+         reverse('users:signup'), HTTPStatus.OK),
     ),
 )
-def test_pages_availability_and_redirect(
-        client,
-        name,
-        args,
-        expected_status,
+def test_pages_availability(
+        user_client,
+        url,
+        status,
 ):
+    """Проверка доступности страниц по их
+    именам для анонимных пользователей.
     """
-    Проверка доступности страниц по их именам и
-    перенаправления для анонимных пользователей.
-    """
-    url = reverse(name, args=args)
-    response = client.get(url)
-    if expected_status == HTTPStatus.OK:
-        # Проверка доступности страницы для анонимных пользователей
-        assert response.status_code == HTTPStatus.OK
-    else:
-        # Проверка перенаправления для анонимных пользователей
-        login_url = reverse('users:login')
-        expected_redirect_url = f'{login_url}?next={url}'
-        assert response.status_code == HTTPStatus.FOUND
-        assert response.url == expected_redirect_url
+    response = user_client.get(url)  # Выполняем запрос.
+    assert response.status_code == status
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    'url',
+    (
+        pytest.lazy_fixture('comment_edit_url'),
+        pytest.lazy_fixture('comment_delete_url'),
+    ),
+)
+def test_pages_redirect_for_anonymous_users(
+        anonymous_client,
+        url,
+):
+    """Проверка перенаправления страниц для анонимных пользователей."""
+    login_url = reverse('users:login')
+    expected_url = f'{login_url}?next={url}'
+    response = anonymous_client.get(url)
+    assert response.status_code == HTTPStatus.FOUND
+    assert response.url == expected_url

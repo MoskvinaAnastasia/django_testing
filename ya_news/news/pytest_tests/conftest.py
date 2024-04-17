@@ -1,9 +1,10 @@
 from datetime import datetime, timedelta
 
+import pytest
+
 from django.conf import settings
 from django.test.client import Client
 from django.urls import reverse
-import pytest
 
 from news.models import Comment, News
 
@@ -64,12 +65,6 @@ def news():
 
 
 @pytest.fixture
-# Фикстура запрашивает другую фикстуру создания новости.
-def news_id_for_args(news):
-    return (news.id,)
-
-
-@pytest.fixture
 # Создаём объект комментарий.
 def comment(author, news):
     comment = Comment.objects.create(  # Создаём объект комментария.
@@ -78,12 +73,6 @@ def comment(author, news):
         text='Текст комментария'
     )
     return comment
-
-
-@pytest.fixture
-# Фикстура запрашивает другую фикстуру создания комментария новости.
-def comment_id_for_args(comment):
-    return (comment.id,)
 
 
 @pytest.fixture

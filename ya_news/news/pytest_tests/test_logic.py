@@ -26,12 +26,11 @@ def test_user_can_create_comment(
         news,
 ):
     """Проверяем, что пользователь может создать комментарий."""
-    initial_comments_count = Comment.objects.count()
+    Comment.objects.all().delete()
     response = author_client.post(detail_url, data=comment_form_data)
     assertRedirects(response, f'{detail_url}#comments')
-    final_comments_count = Comment.objects.count()
-    assert final_comments_count == initial_comments_count + 1
-    created_comment = Comment.objects.get(text=comment_form_data['text'])
+    assert Comment.objects.count() == 1
+    created_comment = Comment.objects.get()
     assert created_comment.text == comment_form_data['text']
     assert created_comment.news == news
     assert created_comment.author == author
@@ -64,11 +63,10 @@ def test_author_can_delete_comment(
         comments_url,
 ):
     """Проверяем, что автор комментария может удалить свой комментарий."""
-    assert Comment.objects.filter(pk=comment.pk).exists()
-
     response = author_client.delete(comment_delete_url)
     assertRedirects(response, comments_url)
     assert response.status_code == HTTPStatus.FOUND
+    assert not Comment.objects.filter(pk=comment.pk).exists()
 
 
 def test_user_cant_delete_comment_of_another_user(
@@ -96,13 +94,6 @@ def test_author_can_edit_comment(
     """
     response = author_client.post(comment_edit_url, data=comment_form_data)
     assertRedirects(response, comments_url)
-    # Обновляем атрибуты комментария с использованием данных из формы редактир
-    comment.text = comment_form_data['text']
-    comment.news = comment_form_data['news']
-    comment.author = comment_form_data['author']
-    comment.save()
-    # Проверяем, что все атрибуты комментария соответствуют ожидаемым
-    assert comment.text == comment_form_data['text']
     assert comment.news == comment_form_data['news']
     assert comment.author == comment_form_data['author']
 
@@ -116,12 +107,8 @@ def test_user_cant_edit_comment_of_another_user(
     """Проверяем, что пользователь не может редактировать
     комментарий другого пользователя.
     """
-    original_comment_text = comment.text
     response = not_author_client.post(comment_edit_url, data=comment_form_data)
     assert response.status_code == HTTPStatus.NOT_FOUND
-    # Перезагружать объект комментария из базы данных не нужно,
-    # так как мы не ожидаем, что он изменится
-    assert comment.text == original_comment_text
     # Проверяем, что другие атрибуты комментария остались неизменными
     assert comment.news == comment_form_data['news']
     assert comment.author == comment_form_data['author']
