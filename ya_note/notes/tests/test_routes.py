@@ -1,6 +1,6 @@
 from http import HTTPStatus
-from django.test import Client
 
+from django.test import Client
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
@@ -45,7 +45,6 @@ class TestRoutes(TestCase):
              HTTPStatus.NOT_FOUND, (self.note.slug,)),
             ('notes:edit', self.reader_client,
              HTTPStatus.NOT_FOUND, (self.note.slug,)),
-
         ]
 
         for name, client, expected_status, args in urls:

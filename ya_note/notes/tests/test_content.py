@@ -55,19 +55,20 @@ class TestNoteContentAndForms(TestCase):
         object_list = response.context['object_list']
         self.assertIn(self.note_reader, object_list)
 
-    def test_note_forms_are_passed_to_pages(self):
+    def test_note_form_is_passed_to_add_page(self):
         """
-        Проверка, что форма создания заметки передается
-        на страницу создания, и что форма редактирования заметки
+        Проверка, что форма создания заметки
+        передается на страницу создания.
+        """
+        url = reverse('notes:add')
+        response = self.auth_client_author.get(url)
+        self.assertIsInstance(response.context['form'], NoteForm)
+
+    def test_note_form_is_passed_to_edit_page(self):
+        """
+        Проверка, что форма редактирования заметки
         передается на страницу редактирования.
         """
-        urls = [
-            ('notes:add', None),
-            ('notes:edit', self.note_author.slug)
-        ]
-
-        for name, slug in urls:
-            with self.subTest(name=name):
-                url = reverse(name, args=[slug]) if slug else reverse(name)
-                response = self.auth_client_author.get(url)
-                self.assertIsInstance(response.context['form'], NoteForm)
+        url = reverse('notes:edit', args=[self.note_author.slug])
+        response = self.auth_client_author.get(url)
+        self.assertIsInstance(response.context['form'], NoteForm)
