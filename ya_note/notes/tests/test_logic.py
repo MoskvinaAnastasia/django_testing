@@ -58,8 +58,7 @@ class TestNoteOperations(TestCase):
         self.assertRedirects(response, reverse('notes:success'))
         notes_count = Note.objects.count()
         self.assertEqual(notes_count, 1)
-        new_note = Note.objects.get(title=self.NEW_NOTE_TITLE,
-                                    text=self.NOTE_TEXT)
+        new_note = Note.objects.get()
         self.assertEqual(new_note.title, self.NEW_NOTE_TITLE)
         self.assertEqual(new_note.text, self.NOTE_TEXT)
         self.assertEqual(new_note.author, self.author)
@@ -71,8 +70,8 @@ class TestNoteOperations(TestCase):
         self.author_client.post(
             self.url, data={'title': self.NOTE_TITLE,
                             'text': self.NOTE_TEXT,
-                            'author': self.author})
-        new_note = Note.objects.get(title=self.NOTE_TITLE, text=self.NOTE_TEXT)
+                            })
+        new_note = Note.objects.get()
         generated_slug = new_note.slug
         expected_slug = slugify(self.NOTE_TITLE)
         self.assertEqual(generated_slug, expected_slug)
