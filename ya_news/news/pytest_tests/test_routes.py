@@ -1,8 +1,7 @@
 from http import HTTPStatus
 
-import pytest
-
 from django.urls import reverse
+import pytest
 
 
 @pytest.mark.django_db
@@ -19,6 +18,14 @@ from django.urls import reverse
          reverse('users:logout'), HTTPStatus.OK),
         (pytest.lazy_fixture('anonymous_client'),
          reverse('users:signup'), HTTPStatus.OK),
+        (pytest.lazy_fixture('not_author_client'),
+         pytest.lazy_fixture('comment_edit_url'), HTTPStatus.NOT_FOUND),
+        (pytest.lazy_fixture('not_author_client'),
+         pytest.lazy_fixture('comment_delete_url'), HTTPStatus.NOT_FOUND),
+        (pytest.lazy_fixture('author_client'),
+         pytest.lazy_fixture('comment_edit_url'), HTTPStatus.OK),
+        (pytest.lazy_fixture('author_client'),
+         pytest.lazy_fixture('comment_delete_url'), HTTPStatus.OK),
     ),
 )
 def test_pages_availability(
@@ -29,7 +36,7 @@ def test_pages_availability(
     """Проверка доступности страниц по их
     именам для анонимных пользователей.
     """
-    response = user_client.get(url)  # Выполняем запрос.
+    response = user_client.get(url)
     assert response.status_code == status
 
 

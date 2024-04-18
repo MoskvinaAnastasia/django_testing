@@ -1,10 +1,9 @@
 from datetime import datetime, timedelta
 
-import pytest
-
 from django.conf import settings
 from django.test.client import Client
 from django.urls import reverse
+import pytest
 
 from news.models import Comment, News
 
@@ -118,10 +117,9 @@ def list_comment(author, news):
 
 @pytest.fixture
 # Словарь формы для создания тестового комментария.
-def comment_form_data(author, news):
+def comment_form_data(news):
     return {
         'news': news,
-        'author': author,
         'text': 'Новый текст',
     }
 

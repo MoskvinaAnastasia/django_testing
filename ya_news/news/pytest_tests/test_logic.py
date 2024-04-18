@@ -1,15 +1,20 @@
 from http import HTTPStatus
 
 from pytest_django.asserts import assertFormError, assertRedirects
+import pytest
 
 from news.forms import BAD_WORDS, WARNING
 from news.models import Comment
 
+import pytest
 
+
+@pytest.mark.django_db
 def test_anonymous_user_cant_create_comment(
         anonymous_client,
         comment_form_data,
         detail_url,
+
 ):
     """Проверяем, что анонимный пользователь не может создать комментарий."""
     initial_comments_count = Comment.objects.count()
@@ -83,6 +88,7 @@ def test_user_cant_delete_comment_of_another_user(
 
 
 def test_author_can_edit_comment(
+        author,
         author_client,
         comment,
         comment_edit_url,
@@ -92,10 +98,13 @@ def test_author_can_edit_comment(
     """Проверяем, что автор комментария может
     отредактировать свой комментарий.
     """
+    comment_form_data['author'] = author
     response = author_client.post(comment_edit_url, data=comment_form_data)
     assertRedirects(response, comments_url)
-    assert comment.news == comment_form_data['news']
-    assert comment.author == comment_form_data['author']
+    edited_comment = Comment.objects.get(pk=comment.pk)
+    assert edited_comment.text == comment_form_data['text']
+    assert edited_comment.author == author
+    assert edited_comment.news == comment.news
 
 
 def test_user_cant_edit_comment_of_another_user(
@@ -103,12 +112,16 @@ def test_user_cant_edit_comment_of_another_user(
         comment,
         comment_edit_url,
         comment_form_data,
+        comments_url,
+        author,
 ):
     """Проверяем, что пользователь не может редактировать
     комментарий другого пользователя.
     """
+    comment_form_data['author'] = author
     response = not_author_client.post(comment_edit_url, data=comment_form_data)
     assert response.status_code == HTTPStatus.NOT_FOUND
-    # Проверяем, что другие атрибуты комментария остались неизменными
-    assert comment.news == comment_form_data['news']
-    assert comment.author == comment_form_data['author']
+    comment_from_db = Comment.objects.get(pk=comment.pk)
+    assert comment.text == comment_from_db.text
+    assert comment.news == comment_from_db.news
+    assert comment.author == comment_from_db.author

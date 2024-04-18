@@ -1,13 +1,11 @@
-import pytest
-
 from django.contrib.auth import get_user_model
 from django.urls import reverse
 from django.conf import settings
+import pytest
 
 from news.forms import CommentForm
 
 
-# Получаем модель пользователя.
 User = get_user_model()
 
 # Задаем адрес домашней страницы в качестве глобальной константы.
