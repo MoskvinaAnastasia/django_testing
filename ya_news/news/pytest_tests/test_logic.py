@@ -98,7 +98,6 @@ def test_author_can_edit_comment(
     """Проверяем, что автор комментария может
     отредактировать свой комментарий.
     """
-    comment_form_data['author'] = author
     response = author_client.post(comment_edit_url, data=comment_form_data)
     assertRedirects(response, comments_url)
     edited_comment = Comment.objects.get(pk=comment.pk)
@@ -118,7 +117,6 @@ def test_user_cant_edit_comment_of_another_user(
     """Проверяем, что пользователь не может редактировать
     комментарий другого пользователя.
     """
-    comment_form_data['author'] = author
     response = not_author_client.post(comment_edit_url, data=comment_form_data)
     assert response.status_code == HTTPStatus.NOT_FOUND
     comment_from_db = Comment.objects.get(pk=comment.pk)
